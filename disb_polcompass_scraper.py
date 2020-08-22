@@ -4,7 +4,7 @@ import json
 import datetime
 
 
-exp_file = 'assets\\reddit\\polcompass\\polcompass.csv'
+exp_file = 'data\\polcompass.csv'
 
 try:
     with open(exp_file) as f:
@@ -26,7 +26,7 @@ def getPushshiftData(a, b):
     data = json.loads(r.text)
     return data['data']
 
-after, before = latestts, 1586948796 
+after, before = latestts, 1586948796
 data = getPushshiftData(after, before)
 
 # from the 'after' date up until before date

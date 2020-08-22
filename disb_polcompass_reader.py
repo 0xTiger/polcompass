@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.font_manager import FontProperties
 
-data_file = 'assets\\reddit\\polcompass\\polcompass.csv'
+data_file = 'data\\polcompass.csv'
 
 with open(data_file) as f:
     reader = csv.reader(f)
