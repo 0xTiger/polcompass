@@ -3,21 +3,31 @@ import csv
 import matplotlib.pyplot as plt
 from bisect import bisect_left
 
-data_file = 'assets\\reddit\\polcompass\\polcompass.csv'
+data_file = 'data/polcompass.csv'
 
-with open(data_file) as f:
+stances = {'libleft': 'g',
+        'libright': 'y',
+        'authleft': 'r',
+        'authright': 'b',
+        'centrist': '#c9c1c1',
+        'libright2': 'm',
+        'None': 'k',
+        'left': '#71e827',
+        'right': '#5c8d91',
+        'lib': '#4c824a',
+        'auth': '#7b34ad'}
+
+with open(data_file, 'r') as f:
     reader = csv.reader(f)
 
     users = {}
     for row in reader:
-        ts, name, leaning = int(row[0]), row[2], row[3]
+        ts, id, name, leaning = row
         if name not in users: users[name] = []
-        users[name].append((ts, leaning))
-
-stances = {s[-1][1] for u, s in users.items()}
+        users[name].append((int(ts), leaning))
 
 series = {}
-for stance in stances:
+for stance in stances.keys():
     series[stance] = [s[0][0] for u, s in users.items() if s[-1][1] == stance]
 
 
@@ -35,25 +45,13 @@ norm = lambda a: list(map(lambda x: x/sum(a) if sum(a) != 0 else 0, a))
 snapshots_ts = list(range(1570491626, max(s[0][0] for u, s in users.items()), 10000))
 y = [norm(take_snapshot(ts)) for ts in snapshots_ts]
 
-fig, ax = plt.subplots(1)
-plt.stackplot(snapshots_ts, np.transpose(y),
+fig, ax = plt.subplots()
+ax.stackplot(snapshots_ts, np.transpose(y),
                 labels=['libleft', 'libright', 'authleft', 'authright'],
                 colors=['g', 'y', 'r', 'b'])
 
-fig2, ax2 = plt.subplots(1)
-tracks = [('libleft', 'g'),
-        ('libright', 'y'),
-        ('authleft', 'r'),
-        ('authright', 'b'),
-        ('centrist', '#c9c1c1'),
-        ('libright2', 'm'),
-        ('None', 'k'),
-        ('left', '#71e827'),
-        ('right', '#5c8d91'),
-        ('lib', '#4c824a'),
-        ('auth', '#7b34ad')]
-
-for track, clr in tracks:
-    plt.plot(series[track], range(1, len(series[track]) + 1), color=clr, label=track)
-plt.legend()
+fig2, ax2 = plt.subplots()
+for stance, color in stances.items():
+    ax2.plot(series[stance], range(1, len(series[stance]) + 1), color=color, label=stance)
+ax2.legend()
 plt.show()

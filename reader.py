@@ -3,30 +3,32 @@ import csv
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.font_manager import FontProperties
+from collections import Counter
 
-data_file = 'data\\polcompass.csv'
+data_file = 'data/polcompass.csv'
 
 with open(data_file) as f:
     reader = csv.reader(f)
 
     users, ids = {}, {}
     for row in reader:
-        users[row[2]] = row[3]
-        ids[row[1]] = row[3]
+        ts, id, name, leaning = row
+        users[name] = leaning
+        ids[id] = leaning
 
-#stances_dict = {stance: len([u for u, s in users.items() if s == stance]) for stance in stances}
-stances_dict, ids_dict = {}, {}
-stances = {s for u, s in users.items()}
+stances = set(users.values())
+comment_stance_counts = Counter(ids.values())
+user_stance_counts = Counter(users.values())
+
+print(f'{"":<10}: users, comments, comments/user')
 for stance in stances:
-    ids_dict[stance] = len([c for c, s in ids.items() if s == stance])
-    stances_dict[stance] = len([u for u, s in users.items() if s == stance])
-    print('%s: %d, %d, %.2f' % (stance, stances_dict[stance], ids_dict[stance], ids_dict[stance]/stances_dict[stance]))
-print('total: %d, %d, %.2f' % (len(users), len(ids), len(ids)/len(users)))
+    print(f'{stance:<10}: {user_stance_counts[stance]}, {comment_stance_counts[stance]}, {comment_stance_counts[stance]/user_stance_counts[stance]:.2f}')
+print(f'{"total":<10}: {len(users)}, {len(ids)}, {len(ids)/len(users):.2f}')
 
-libleft = stances_dict['libleft'] + 0.5*stances_dict['left'] + 0.5*stances_dict['lib'] + 0.25*stances_dict['centrist']
-libright = stances_dict['libright'] + 0.5*stances_dict['right'] + 0.5*stances_dict['lib'] + 0.25*stances_dict['centrist'] + stances_dict['libright2']
-authleft = stances_dict['authleft'] + 0.5*stances_dict['left'] + 0.5*stances_dict['auth'] + 0.25*stances_dict['centrist']
-authright = stances_dict['authright'] + 0.5*stances_dict['right'] + 0.5*stances_dict['auth'] + 0.25*stances_dict['centrist']
+libleft = user_stance_counts['libleft'] + 0.5*user_stance_counts['left'] + 0.5*user_stance_counts['lib'] + 0.25*user_stance_counts['centrist']
+libright = user_stance_counts['libright'] + 0.5*user_stance_counts['right'] + 0.5*user_stance_counts['lib'] + 0.25*user_stance_counts['centrist'] + user_stance_counts['libright2']
+authleft = user_stance_counts['authleft'] + 0.5*user_stance_counts['left'] + 0.5*user_stance_counts['auth'] + 0.25*user_stance_counts['centrist']
+authright = user_stance_counts['authright'] + 0.5*user_stance_counts['right'] + 0.5*user_stance_counts['auth'] + 0.25*user_stance_counts['centrist']
 total = libleft + libright + authleft + authright
 
 fig, ax = plt.subplots(1)
@@ -41,7 +43,7 @@ quads = [(authright, (1,1), 'b', 'authright'),
 for followers, loc, clr, leaning in quads:
     rect = patches.Rectangle((0,0),loc[0]*math.sqrt(followers),loc[1]*math.sqrt(followers),linewidth=1,edgecolor=clr,facecolor=clr,alpha=0.6)
     ax.add_patch(rect)
-    ax.annotate(s=str(round(followers)) + '\n(' + str(round(100*followers/total)) + '%)',
+    ax.annotate(s=f'{round(followers)}\n({round(100*followers/total)}%)',
                     xy=(0.5*loc[0]*math.sqrt(followers),0.5*loc[1]*math.sqrt(followers)), fontsize=0.2*math.sqrt(followers), alpha=1,
                     xycoords='data', verticalalignment='center',
                     horizontalalignment='center' , color=clr)

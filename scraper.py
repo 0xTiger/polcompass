@@ -4,7 +4,7 @@ import json
 import datetime
 
 
-exp_file = 'data\\polcompass.csv'
+exp_file = 'data/polcompass.csv'
 
 try:
     with open(exp_file) as f:
