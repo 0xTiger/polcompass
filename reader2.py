@@ -1,6 +1,7 @@
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from bisect import bisect_left
 
 data_file = 'data/polcompass.csv'
@@ -32,7 +33,7 @@ for stance in stances.keys():
 
 
 def take_snapshot(t):
-    def b(stance, time=t):
+    def b(stance):
         return bisect_left(series[stance], t)
     libleft = b('libleft') + 0.5*b('left') + 0.5*b('lib') + 0.25*b('centrist')
     libright = b('libright') + 0.5*b('right') + 0.5*b('lib') + 0.25*b('centrist') + b('libright2')
@@ -46,12 +47,16 @@ snapshots_ts = list(range(1570491626, max(s[0][0] for u, s in users.items()), 10
 y = [norm(take_snapshot(ts)) for ts in snapshots_ts]
 
 fig, ax = plt.subplots()
-ax.stackplot(snapshots_ts, np.transpose(y),
+ax.stackplot(np.array(snapshots_ts, dtype='datetime64[s]'), np.transpose(y),
                 labels=['libleft', 'libright', 'authleft', 'authright'],
                 colors=['g', 'y', 'r', 'b'])
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ax.set_ylabel('% of users')
 
 fig2, ax2 = plt.subplots()
 for stance, color in stances.items():
-    ax2.plot(series[stance], range(1, len(series[stance]) + 1), color=color, label=stance)
+    ax2.plot(np.array(series[stance], dtype='datetime64[s]'), range(1, len(series[stance]) + 1), color=color, label=stance)
+ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ax2.set_ylabel('Cumulative # of users')
 ax2.legend()
 plt.show()
