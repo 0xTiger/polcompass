@@ -1,3 +1,4 @@
+from collections import defaultdict
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
@@ -21,33 +22,30 @@ stances = {'libleft': 'g',
 with open(data_file, 'r') as f:
     reader = csv.reader(f)
 
-    users = {}
+    users = defaultdict(list)
     for row in reader:
         ts, id, name, leaning = row
-        if name not in users: users[name] = []
         users[name].append((int(ts), leaning))
 
-series = {}
-for stance in stances.keys():
-    series[stance] = [s[0][0] for u, s in users.items() if s[-1][1] == stance]
+
+series = {stance: [v[0][0] for v in users.values() if v[-1][1] == stance]
+            for stance in stances}
 
 
 def take_snapshot(t):
-    def b(stance):
-        return bisect_left(series[stance], t)
-    libleft = b('libleft') + 0.5*b('left') + 0.5*b('lib') + 0.25*b('centrist')
-    libright = b('libright') + 0.5*b('right') + 0.5*b('lib') + 0.25*b('centrist') + b('libright2')
-    authleft = b('authleft') + 0.5*b('left') + 0.5*b('auth') + 0.25*b('centrist')
-    authright = b('authright') + 0.5*b('right') + 0.5*b('auth') + 0.25*b('centrist')
-    return [libleft, libright, authleft, authright]
+    b = {stance: bisect_left(series[stance], t) for stance in set(stances) - {'None'}}
+    M = np.array([[b['libleft'],   b['left'],  b['lib'],  b['centrist']],
+                  [b['libright'],  b['right'], b['lib'],  b['centrist']],
+                  [b['authleft'],  b['left'],  b['auth'], b['centrist']],
+                  [b['authright'], b['right'], b['auth'], b['centrist']]])
+    M[1, 0] += b['libright2']
+    return M @ np.array([1, 0.5, 0.5, 0.25])
 
-norm = lambda a: list(map(lambda x: x/sum(a) if sum(a) != 0 else 0, a))
-
-snapshots_ts = list(range(1570491626, max(s[0][0] for u, s in users.items()), 10000))
-y = [norm(take_snapshot(ts)) for ts in snapshots_ts]
+snapshots_ts = list(range(1570491626, max(v[0][0] for v in users.values()), 10000))
+y = np.array([take_snapshot(ts) for ts in snapshots_ts])
 
 fig, ax = plt.subplots()
-ax.stackplot(np.array(snapshots_ts, dtype='datetime64[s]'), np.transpose(y),
+ax.stackplot(np.array(snapshots_ts, dtype='datetime64[s]'), np.transpose(y) / np.linalg.norm(y, axis=1, ord=1),
                 labels=['libleft', 'libright', 'authleft', 'authright'],
                 colors=['g', 'y', 'r', 'b'])
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
