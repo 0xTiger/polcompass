@@ -3,7 +3,6 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from bisect import bisect_left
 
 data_file = 'data/polcompass.csv'
 
@@ -28,24 +27,22 @@ with open(data_file, 'r') as f:
         users[name].append((int(ts), leaning))
 
 
+snapshots_ts = list(range(1570491626, max(v[0][0] for v in users.values()), 10000))
 series = {stance: [v[0][0] for v in users.values() if v[-1][1] == stance]
             for stance in stances}
+cdf = {stance: np.cumsum(np.histogram(series[stance], bins=snapshots_ts)[0])
+            for stance in stances}
 
-
-def take_snapshot(t):
-    b = {stance: bisect_left(series[stance], t) for stance in set(stances) - {'None'}}
-    M = np.array([[b['libleft'],   b['left'],  b['lib'],  b['centrist']],
-                  [b['libright'],  b['right'], b['lib'],  b['centrist']],
-                  [b['authleft'],  b['left'],  b['auth'], b['centrist']],
-                  [b['authright'], b['right'], b['auth'], b['centrist']]])
-    M[1, 0] += b['libright2']
-    return M @ np.array([1, 0.5, 0.5, 0.25])
-
-snapshots_ts = list(range(1570491626, max(v[0][0] for v in users.values()), 10000))
-y = np.array([take_snapshot(ts) for ts in snapshots_ts])
+M = np.array([[cdf['libleft'],   cdf['left'],  cdf['lib'],  cdf['centrist']],
+                [cdf['libright'],  cdf['right'], cdf['lib'],  cdf['centrist']],
+                [cdf['authleft'],  cdf['left'],  cdf['auth'], cdf['centrist']],
+                [cdf['authright'], cdf['right'], cdf['auth'], cdf['centrist']]])
+M[1, 0] += cdf['libright2']
+# Kinda like the dot product across axis=1
+y = np.einsum('ijk,j->ik', M, np.array([1, 0.5, 0.5, 0.25]))
 
 fig, ax = plt.subplots()
-ax.stackplot(np.array(snapshots_ts, dtype='datetime64[s]'), np.transpose(y) / np.linalg.norm(y, axis=1, ord=1),
+ax.stackplot(np.array(snapshots_ts, dtype='datetime64[s]')[1:], y / np.linalg.norm(y, axis=0, ord=1),
                 labels=['libleft', 'libright', 'authleft', 'authright'],
                 colors=['g', 'y', 'r', 'b'])
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
